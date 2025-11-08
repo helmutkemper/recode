@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          > /etc/apt/sources.list.d/nodesource.list \
     && apt-get update && apt-get install -y nodejs \
     && npm i -g --unsafe-perm node-red@latest \
+    && npm i --prefix /data express @shoelace-style/shoelace \
     && apt-get purge -y gnupg \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
