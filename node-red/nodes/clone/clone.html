@@ -1,0 +1,207 @@
+<!--
+Editor UI (Shoelace) for the node "shoelace-git-clone"
+
+English:
+ - Adds a button that opens an <sl-drawer> panel.
+ - Inside the panel: a small form (repo/branch/dest) and a live log area.
+ - Uses EventSource (SSE) to read /git/clone/stream/:id and append lines.
+
+Português:
+ - Adiciona um botão que abre um painel <sl-drawer>.
+ - Dentro do painel: formulário (repo/branch/dest) e área de log ao vivo.
+ - Usa EventSource (SSE) para ler /git/clone/stream/:id e anexar linhas.
+-->
+
+<!-- Template do diálogo de propriedades "clássico" do Node-RED -->
+<script type="text/html" data-template-name="shoelace-git-clone">
+    <div class="form-row">
+        <label for="node-input-name">Name</label>
+        <input type="text" id="node-input-name" placeholder="Optional label">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-repo">Repository URL</label>
+        <input type="text" id="node-input-repo" placeholder="e.g. https://github.com/owner/repo.git or git@github.com:owner/repo.git">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-branch">Branch (optional)</label>
+        <input type="text" id="node-input-branch" placeholder="main">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-dest">Destination (optional)</label>
+        <input type="text" id="node-input-dest" placeholder="/tmp/my-repo">
+    </div>
+
+    <div class="form-row">
+        <!-- Botão que abre o painel Shoelace -->
+        <button id="slgc-open" class="red-ui-button">Open Git Panel</button>
+    </div>
+
+    <!-- Painel Shoelace: carregamos assets de /shoelace (mesma origem) -->
+    <link rel="stylesheet" href="/shoelace/themes/dark.css">
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+
+<div class="sl-theme-dark">
+    <sl-drawer id="slgc-drawer" label="Git Clone" placement="end" class="sl-theme-dark">
+        <div style="display:flex; gap:12px; flex-direction:column">
+
+            <sl-alert variant="neutral" open>
+                <sl-icon slot="icon" name="git-branch"></sl-icon>
+                Configure o repositório e clique em <b>Clone</b> para iniciar. O log aparece abaixo em tempo real.
+            </sl-alert>
+
+            <sl-input id="slgc-repo" label="Repository URL"></sl-input>
+            <sl-input id="slgc-branch" label="Branch (optional)"></sl-input>
+            <sl-input id="slgc-dest" label="Destination (optional)"></sl-input>
+
+            <div style="display:flex; gap:8px">
+                <sl-button id="slgc-run" variant="primary">Clone</sl-button>
+                <sl-button id="slgc-clear" variant="neutral" outline>Clear log</sl-button>
+            </div>
+
+            <sl-divider></sl-divider>
+
+            <label>Live log</label>
+            <div id="slgc-log"
+                 style="height:220px; overflow:auto; border:1px solid var(--sl-color-neutral-500); border-radius:8px; padding:8px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; white-space:pre-wrap; background: var(--sl-color-neutral-900);">
+            </div>
+        </div>
+        <sl-button slot="footer" variant="neutral" outline onclick="document.getElementById('slgc-drawer').hide()">Close</sl-button>
+    </sl-drawer>
+</div>
+
+<style>
+    /* Integração visual mínima com o editor do Node-RED */
+    .sl-theme-dark { color-scheme: dark; }
+</style>
+</script>
+
+<!-- Ajuda -->
+<script type="text/html" data-help-name="shoelace-git-clone">
+    <p><b>Shoelace Git Clone</b>: abre um painel (Shoelace) com formulário e log em tempo real do comando <code>git clone</code>.</p>
+    <p>Você pode acionar o clone pelo botão do painel ou enviando mensagem ao nó (campos <code>msg.repo</code>, <code>msg.branch</code>, <code>msg.dest</code>).</p>
+</script>
+
+<script type="text/javascript">
+    (function() {
+        RED.nodes.registerType("shoelace-git-clone", {
+            category: "function",
+            color: "#222833",
+            icon: "font-awesome/fa-code-fork",
+            defaults: {
+                name: { value: "" },
+                repo: { value: "" },
+                branch: { value: "" },
+                dest: { value: "" }
+            },
+            inputs: 1,
+            outputs: 1,
+            label: function() {
+                return this.name || "shoelace-git-clone";
+            },
+            oneditprepare: function() {
+                const node = this;
+
+                // Inputs padrão do Node-RED
+                $("#node-input-name").val(node.name);
+                $("#node-input-repo").val(node.repo);
+                $("#node-input-branch").val(node.branch);
+                $("#node-input-dest").val(node.dest);
+
+                // Shoelace elements
+                const drawer = document.getElementById("slgc-drawer");
+                const btnOpen = document.getElementById("slgc-open");
+                const inRepo  = document.getElementById("slgc-repo");
+                const inBranch= document.getElementById("slgc-branch");
+                const inDest  = document.getElementById("slgc-dest");
+                const btnRun  = document.getElementById("slgc-run");
+                const btnClear= document.getElementById("slgc-clear");
+                const logBox  = document.getElementById("slgc-log");
+
+                // Sincroniza valores do form Shoelace com os inputs do Node-RED
+                const syncFromNode = () => {
+                    inRepo.value = $("#node-input-repo").val() || "";
+                    inBranch.value = $("#node-input-branch").val() || "";
+                    inDest.value = $("#node-input-dest").val() || "";
+                };
+
+                // Abre o painel
+                btnOpen.addEventListener("click", () => {
+                    syncFromNode();
+                    drawer.show();
+                    startSSE(); // começa a escutar logs para este node.id
+                });
+
+                // Limpa logs
+                btnClear.addEventListener("click", () => {
+                    logBox.textContent = "";
+                });
+
+                // Dispara clone
+                btnRun.addEventListener("click", async () => {
+                    // também reflete no diálogo nativo (salva quando clicar em "Done")
+                    $("#node-input-repo").val(inRepo.value);
+                    $("#node-input-branch").val(inBranch.value);
+                    $("#node-input-dest").val(inDest.value);
+
+                    const payload = {
+                        nodeId: node.id,
+                        repo: inRepo.value,
+                        branch: inBranch.value,
+                        destDir: inDest.value
+                    };
+                    try {
+                        const resp = await fetch("/git/clone/start", {
+                            method: "POST",
+                            headers: {"Content-Type":"application/json"},
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await resp.json();
+                        appendLog(`-> clone started pid=${data.pid} target=${data.target}\n`);
+                    } catch (e) {
+                        appendLog("ERROR starting clone: " + e + "\n");
+                    }
+                });
+
+                // SSE stream
+                let es = null;
+                function startSSE() {
+                    stopSSE();
+                    es = new EventSource(`/git/clone/stream/${node.id}`);
+                    es.addEventListener("message", (ev) => {
+                        try {
+                            const msg = JSON.parse(ev.data);
+                            if (msg.type === "log") {
+                                appendLog(`[${msg.stream}] ${msg.line}`);
+                            } else if (msg.type === "done") {
+                                appendLog(`\n[DONE] exit code ${msg.code}, target: ${msg.target}\n`);
+                            }
+                        } catch {}
+                    });
+                    es.addEventListener("ping", () => {});
+                    es.onerror = () => {
+                        // SSE caiu; tenta reconectar ao reabrir painel
+                    };
+                }
+                function stopSSE() {
+                    if (es) { es.close(); es = null; }
+                }
+                function appendLog(line) {
+                    logBox.textContent += line;
+                    logBox.scrollTop = logBox.scrollHeight;
+                }
+
+                // Fechou o drawer -> para SSE
+                drawer?.addEventListener("sl-after-hide", stopSSE);
+            },
+            oneditsave: function() {
+                this.name   = $("#node-input-name").val();
+                this.repo   = $("#node-input-repo").val();
+                this.branch = $("#node-input-branch").val();
+                this.dest   = $("#node-input-dest").val();
+            }
+        });
+    })();
+</script>
