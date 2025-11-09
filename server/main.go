@@ -33,6 +33,9 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -40,9 +43,238 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"sync"
 	"time"
 )
+
+// initRuleBook
+//
+// English:
+//
+//	Organises complex rules, mainly business rules and visual rules.
+//	All rules must be straightforward and respect the single responsibility of the function,
+//	and the function must be self-contained.
+//
+// Português:
+//
+//	Organiza as regras complexas (negócio/visuais).
+//	Todas as funções devem ser simples, responsabilidade única e auto contidas.
+//func initRuleBook() {}
+
+// ------------------------- SSE payload -------------------------
+
+type sseMsg struct {
+	Type   string `json:"type"`             // "hello" | "log" | "done"
+	Stream string `json:"stream,omitempty"` // "stdout" | "stderr"
+	Line   string `json:"line,omitempty"`
+	Code   int    `json:"code,omitempty"`
+	Target string `json:"target,omitempty"`
+}
+
+// ------------------------- SSE hub ----------------------------
+
+type sseClient struct {
+	w  http.ResponseWriter
+	fl http.Flusher
+}
+
+type sseHub struct {
+	mu      sync.RWMutex
+	clients map[string]map[*sseClient]struct{} // nodeId -> set
+}
+
+func newSSEHub() *sseHub {
+	return &sseHub{clients: make(map[string]map[*sseClient]struct{})}
+}
+
+func (h *sseHub) add(id string, c *sseClient) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.clients[id] == nil {
+		h.clients[id] = make(map[*sseClient]struct{})
+	}
+	h.clients[id][c] = struct{}{}
+}
+
+func (h *sseHub) remove(id string, c *sseClient) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if set := h.clients[id]; set != nil {
+		delete(set, c)
+		if len(set) == 0 {
+			delete(h.clients, id)
+		}
+	}
+}
+
+func (h *sseHub) broadcast(id string, msg sseMsg) {
+	h.mu.RLock()
+	set := h.clients[id]
+	h.mu.RUnlock()
+	if len(set) == 0 {
+		return
+	}
+	data, _ := json.Marshal(msg)
+	for c := range set {
+		c.w.Header().Set("Access-Control-Allow-Origin", "*") // CORS simples
+		_, _ = c.w.Write([]byte("data: " + string(data) + "\n\n"))
+		c.fl.Flush()
+	}
+}
+
+// ------------------------- LiveLog io.Writer ------------------
+
+// sseWriter converte writes arbitrários em linhas no SSE.
+// Ele acumula fragmentos que não terminam com '\n' até completar uma linha.
+type sseWriter struct {
+	h      *sseHub
+	id     string
+	stream string
+	buf    []byte
+}
+
+func (w *sseWriter) Write(p []byte) (int, error) {
+	w.buf = append(w.buf, p...)
+	sc := bufio.NewScanner(bytes.NewReader(w.buf))
+	sc.Split(bufio.ScanLines)
+
+	used := 0
+	for sc.Scan() {
+		line := sc.Text()
+		used += len(line) + 1 // + '\n' (se não houver, ajustamos abaixo)
+		w.h.broadcast(w.id, sseMsg{Type: "log", Stream: w.stream, Line: line + "\n"})
+	}
+	// Se o último fragmento não tinha '\n', o 'used' vai avançar 1 além do tamanho real.
+	if used > len(w.buf) {
+		used = len(w.buf)
+	}
+	w.buf = w.buf[used:]
+	return len(p), nil
+}
+
+func LiveLogWriter(h *sseHub, nodeID, stream string) *sseWriter {
+	return &sseWriter{h: h, id: nodeID, stream: stream}
+}
+
+// GET /git/clone/stream/{id}  -> abre SSE
+func handleGitStream(h *sseHub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		nodeID := strings.TrimPrefix(r.URL.Path, "/git/clone/stream/")
+		nodeID = path.Clean("/" + nodeID)[1:] // sanitiza. IMPORTANTE: precisa existir id
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		fl, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+			return
+		}
+
+		c := &sseClient{w: w, fl: fl}
+		h.add(nodeID, c)
+
+		_, _ = w.Write([]byte("data: {\"type\":\"hello\"}\n\n"))
+		fl.Flush()
+
+		tick := time.NewTicker(25 * time.Second)
+		defer tick.Stop()
+
+		ctx := r.Context()
+		for {
+			select {
+			case <-ctx.Done():
+				h.remove(nodeID, c)
+				return
+			case <-tick.C:
+				_, _ = w.Write([]byte("event: ping\ndata: {}\n\n"))
+				fl.Flush()
+			}
+		}
+	}
+}
+
+type startReq struct {
+	NodeID string `json:"nodeId"`
+	Repo   string `json:"repo"`
+	Branch string `json:"branch"`
+	Dest   string `json:"destDir"`
+}
+
+// POST /git/clone/start  -> simula "git clone" por ~2min e escreve em tempo real
+func handleGitStart(h *sseHub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var in startReq
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			http.Error(w, "bad json", http.StatusBadRequest)
+			return
+		}
+		if in.NodeID == "" {
+			http.Error(w, "nodeId required", http.StatusBadRequest)
+			return
+		}
+
+		// Goroutine que escreve stdout/stderr no SSE por ~2min.
+		go func(id string) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+
+			stdout := LiveLogWriter(h, id, "stdout")
+			stderr := LiveLogWriter(h, id, "stderr")
+
+			fmt.Fprintln(stdout, "starting clone...")
+			target := "/tmp/fake/" + id
+			t := time.NewTicker(900 * time.Millisecond)
+			defer t.Stop()
+
+			step := 0
+			for {
+				select {
+				case <-ctx.Done():
+					h.broadcast(id, sseMsg{Type: "done", Code: 0, Target: target, Line: "finished\n"})
+					return
+				case <-t.C:
+					step++
+					if step%4 == 0 {
+						fmt.Fprintln(stderr, "remote: counting objects...")
+					} else {
+						fmt.Fprintf(stdout, "Cloning into '%s'... step=%d\n", target, step)
+					}
+				}
+			}
+		}(in.NodeID)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"started": true,
+			"pid":     12345,
+			"target":  "/tmp/fake/" + in.NodeID,
+		})
+	}
+}
 
 // initRuleBook
 //
@@ -434,6 +666,10 @@ func main() {
 	mux.HandleFunc("/events", handleEvents(store))
 	mux.HandleFunc("/nr/flows", handleNodeRedFlows(nodeRedBase)) // <<< viewer usa isto
 	mux.HandleFunc("/options", corsPreflight)
+
+	h := newSSEHub()
+	mux.HandleFunc("/git/clone/stream/", handleGitStream(h))
+	mux.HandleFunc("/git/clone/start", handleGitStart(h))
 
 	addr := ":" + port
 	log.Printf("server listening on %s (Node-RED at %s)", addr, nodeRedBase)
