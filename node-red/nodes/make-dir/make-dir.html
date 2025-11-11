@@ -1,68 +1,18 @@
-<script type="text/html" data-template-name="shoelace-git-clone">
+<script type="text/html" data-template-name="make-dir">
     <div class="form-row">
-        <label for="node-input-name">Name</label>
-        <input type="text" id="node-input-name" placeholder="Optional label">
+        <label for="node-input-name">Diretório</label>
+        <input type="text" id="node-input-name" placeholder="Nome do diretório permanente">
     </div>
-
-    <div class="form-row">
-        <label for="node-input-info">Description</label>
-        <input type="text" id="node-input-info" placeholder="Git clone panel with live log (SSE)">
-    </div>
-
-    <div class="form-row">
-        <label for="node-input-server">Server URL</label>
-        <input type="text" id="node-input-server" placeholder="http://localhost:8080">
-    </div>
-
-    <div class="form-row">
-        <label for="node-input-repo">Repository URL</label>
-        <input type="text" id="node-input-repo" placeholder="https://github.com/owner/repo.git">
-    </div>
-
-    <div class="form-row">
-        <label for="node-input-branch">Branch (optional)</label>
-        <input type="text" id="node-input-branch" placeholder="main">
-    </div>
-
-    <div class="form-row">
-        <label for="node-input-dest">Destination (optional)</label>
-        <input type="text" id="node-input-dest" placeholder="/tmp/my-repo">
-    </div>
-
-    <div class="form-row" style="display:flex; gap:8px; align-items:center;">
-        <button id="slgc-open" class="red-ui-button">Clone Repository</button>
-        <span id="slgc-status" style="font-size:11px; opacity:.8;"></span>
-    </div>
-
-    <!-- Live log SEMPRE visível -->
-    <div>
-        <label>Live log</label>
-        <div id="slgc-log"
-             style="height:240px; overflow:auto; border:1px solid var(--sl-color-neutral-500); border-radius:8px; padding:8px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; white-space:pre-wrap; background:#0b0e12;">
-        </div>
-    </div>
-
-    <!-- Drawer com os inputs “bonitos” -->
-    <!--div class="sl-theme-dark">
-        <sl-drawer id="slgc-drawer" label="Git Clone" placement="end" class="sl-theme-dark">
-            <div style="display:flex; gap:12px; flex-direction:column">
-                <sl-input id="slgc-repo"   label="Repository URL"></sl-input>
-                <sl-input id="slgc-branch" label="Branch (optional)"></sl-input>
-                <sl-input id="slgc-dest"   label="Destination (optional)"></sl-input>
-                <div style="display:flex; gap:8px; flex-wrap:wrap">
-                    <sl-button id="slgc-run"   variant="primary">Clone</sl-button>
-                    <sl-button id="slgc-clear" variant="neutral" outline>Clear log</sl-button>
-                </div>
-            </div>
-            <sl-button slot="footer" variant="neutral" outline onclick="document.getElementById('slgc-drawer').hide()">Close</sl-button>
-        </sl-drawer>
-    </div-->
 
     <style>.sl-theme-dark{color-scheme:dark}</style>
 </script>
 
-<script type="text/html" data-help-name="shoelace-git-clone">
-    <p>Conecta no Go SSE: <code>/git/clone/stream/:id</code> e dispara <code>/git/clone/start</code>.</p>
+<script type="text/html" data-help-name="make-dir">
+    <p>Define onde clonar o repositório.</p>
+    <p>Caso queira criar um diretório em <b>/git/_seu_diretorio_</b>, preencha o compo diretório.</p>
+    <p>Caso contrário, deixe-o em branco para ser criado um diretório temporário, a ser apagado no final do processo.</p>
+    <p><b>/git/_seu_diretorio_</b> fica na raiz do container e pode ser compartilhado com o computador hospedeiro.</p>
+    <p><b>docker run --name recode \<br>-v _diretorio_local_:/git/_diretorio_servidor_ \<br>...</b></p>
 </script>
 
 <script type="text/javascript">
@@ -74,14 +24,14 @@
                 css.rel = 'stylesheet'; css.href = '/shoelace/themes/dark.css';
                 document.head.appendChild(css);
                 const mod = document.createElement('script');
-                mod.type = 'module'; mod.src = '/shoelace/shoelace-autoloader.js';
+                mod.type = 'module'; mod.src = '/shoelace/autoloader.js';
                 document.head.appendChild(mod);
                 window.__slOnce = customElements.whenDefined('sl-drawer');
             }
             return window.__slOnce;
         }
 
-        RED.nodes.registerType("shoelace-git-clone", {
+        RED.nodes.registerType("make-dir", {
             category: "git",
             color: "#0ae3a3",
             icon: "font-awesome/fa-code-fork",
@@ -95,7 +45,12 @@
             },
             inputs: 1,
             outputs: 1,
-            label: function(){ return this.name || this.info || "shoelace-git-clone"; },
+            label: function(){
+                if(this.name == "") {
+                    return "make-dir: tmp dir";
+                }
+                return "make-dir: "+this.name;
+            },
 
             oneditprepare: function () {
                 const node = this;

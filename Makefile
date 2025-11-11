@@ -63,8 +63,9 @@ shell:
 
 .PHONY: reset-data
 reset-data:
-	@read -p "This will DELETE node-red/data/* . Continue? [y/N] " a; \
-	if [[ "$$a" == "y" || "$$a" == "Y" ]]; then rm -rf node-red/data && mkdir -p node-red/data; fi
+	#@read -p "This will DELETE node-red/data/* . Continue? [y/N] " a; \
+	#if [[ "$$a" == "y" || "$$a" == "Y" ]]; then rm -rf node-red/data && mkdir -p node-red/data; fi
+	rm -rf node-red/data && mkdir -p node-red/data;
 
 .PHONY: clean
 clean:
@@ -76,7 +77,7 @@ factory-reset:
 
 .PHONY: update-nodes
 update-nodes:
-	npm i --prefix /Users/kemper/go/kemper/recode/node-red/data @shoelace-style/shoelace
+	#npm i --prefix /Users/kemper/go/kemper/recode/node-red/data @shoelace-style/shoelace
 	$(MAKEFILE) make down
 	$(MAKEFILE) make reset-data
 	$(MAKEFILE) make factory-reset

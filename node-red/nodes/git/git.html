@@ -1,26 +1,185 @@
-<script type="text/javascript">
-    RED.nodes.registerType('git', {
-        category: 'git',
-        color: '#555555',
-        defaults: {
-            name:     { value: "" },
-            endpoint: { value: "http://server:8080/ingest", required: true }
-        },
-        inputs: 1,
-        outputs: 1,
-        icon: 'font-awesome/fa-git',
-        label: function () { return this.name || 'git'; },
-        paletteLabel: 'git',
-        button: {
-            enabled: true,
-            onclick: function () {
-                var id  = this.id;
-                var base = (RED.settings.httpAdminRoot || "/");
-                if (base.charAt(base.length-1) !== "/") base += "/";
-                var url = base + "git/" + id + "/inject";  // GET sem corpo
+<!--
+Atenção:
+  const category = ""; faz o sistema travar
+-->
+<script type="text/html" data-template-name="git">
+    <div class="form-row">
+        <label for="name"><i class="fa fa-tag"></i> Project name</label>
+        <input type="text" id="name" placeholder="Project name">
+    </div>
 
-                $.ajax({ url: url, type: "GET" });         // <— simples e imediato
+    <div class="form-row">
+        <label for="url"><i class="fa fa-tag"></i> Git URL</label>
+        <input type="text" id="url" placeholder="Project to clone URL">
+    </div>
+
+    <div class="form-row">
+        <label for="remote-branch"><i class="fa fa-tag"></i> Remote branch</label>
+        <input type="text" id="remote-branch" placeholder="Remote branch">
+    </div>
+
+    <div class="form-row">
+        <label><i class="fa fa-tag"></i> Local</label>
+        <span class="button-group">
+            <button id="clone-folder-fix" type="button" class="red-ui-button toggle selected button-clone-folder">Pasta fixa</button>
+            <button id="clone-folder-tmp" type="button" class="red-ui-button toggle button-clone-folder">Pasta temporária</button>
+        </span>
+    </div>
+
+    <div class="form-row">
+        <label for="folder-name">Folder</label>
+        <input type="text" id="folder-name" placeholder="Folder name" help-text="Será usado antes do nome do arquivo.">
+        <div class="nr-form" id="folder-name-help"></div>
+    </div>
+
+    <div class="form-row">
+        <label for="local-branch"><i class="fa fa-tag"></i> Local branch</label>
+        <input type="text" id="local-branch" placeholder="Local branch">
+        <div class="nr-form">
+            Nome do branch local para os commits.<br>Quando o repositório for baixado, o branch será criado de forma automática.
+        </div>
+    </div>
+
+    <div class="form-row">
+        <button id="input-clone" type="button" class="red-ui-button">Clone</button>
+    </div>
+
+    <div class="form-row">
+        <div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-example-editor"></div>
+    </div>
+
+    <style>
+        .nr-form {
+            font-size: 12px;
+            opacity: .7;
+            margin-top: 4px;
+            margin-left:105px;
+        }
+    </style>
+
+</script>
+
+<script type="text/javascript">
+
+    const registerType = "git";
+    const paletteLabel = "git";
+    const registerCategory = "git";
+    const icon = "font-awesome/fa-code-fork";
+    const componentColor = "#aaaaaa";
+    const inputs = 0
+    const outputs = 1
+
+    const folderNameHelp = "Digite o caminho da pasta no servidor.<br>Por exemplo: <b>/git/projeto</b><br>No docker, você pode usar: <br><b>docker run --name recode \<br>-v _pasta_local_:/git/_folder_name_</b>";
+
+    let initialized = false
+
+    let name = "";
+
+    RED.nodes.registerType(registerType, {
+        category: registerCategory,
+        color: componentColor,
+        defaults: {
+            name:           {
+                value: "",
+                validate: RED.validators.regex(/^[a-z]+$/),
+                required: true
+            },
+            // endpoint:       { value: "http://server:8080/ingest", required: true },
+            url:            { value: "" },
+            remoteBranch:   { value: "" },
+            localBranch:    { value: "" },
+            fix:            { value: "" },
+            fixFolderName:  { value: "" },
+            tmp:            { value: "" },
+            tmpFolderName:  { value: "" },
+            folderName:     { value: "" },
+            folderLocal:    { value: "" },
+        },
+        inputs: inputs,
+        outputs: outputs,
+        icon: icon,
+        label: function () {
+            return this.name ? paletteLabel+": "+this.name : paletteLabel;
+        },
+        paletteLabel: paletteLabel,
+
+        oneditsave: function () {
+            this.name = $("#name").val();
+            this.url = $("#url").val();
+            this.remoteBranch = $("#remote-branch").val();
+            this.localBranch = $("#local-branch").val();
+        },
+
+        // is called immediately before the dialog is displayed.
+        oneditprepare: function() {
+
+            this.editor = RED.editor.createEditor({
+                id: 'node-input-example-editor',
+                mode: 'ace/mode/text',
+                value: this.exampleText
+            });
+
+            $("#clone-folder-tmp").on("click", function() {
+
+            });
+
+            $("#clone-folder-fix").on("click", function() {
+
+            });
+
+            $("#input-clone").on("click", function() {
+
+            });
+
+
+            const folderNameDefaultFix = "/git/_folder_name_";
+            const folderNameDefaultTmp = "*-git-folder";
+
+            if(!initialized) {
+                $("#folder-name").val("/git/_folder_name_");
+                $("#folder-name-help").html(folderNameHelp);
             }
+
+
+            $("#clone-folder-tmp").on("click", function() {
+                let value = $("folder-name").val();
+                // node.fixFolderName = value;
+
+                $("#folder-name").attr("placeholder", "Prefixo da pasta");
+                $("#folder-name").val("*-git-folder");
+                $("#folder-name-help").html("Digite um prefixo para a pasta temporária, por exemplo: *-git-folder");
+
+                // node.fix = false;
+                // node.tmp = true;
+            });
+            $("#clone-folder-fix").on("click", function() {
+                let value = $("folder-name").val();
+                // node.tmpFolderName = value;
+
+                $("#folder-name").attr("placeholder", "Nome da pasta");
+                $("#folder-name").val("/git/_folder_name_");
+                $("#folder-name-help").html(folderNameHelp);
+
+                // node.fix = true;
+                // node.tmp = false;
+            });
+
+            $(".button-clone-folder").on("click", function() {
+                $(".button-clone-folder").removeClass("selected");
+                $(this).addClass("selected");
+            })
+
+            $("#input-clone").on("click", function() {
+
+            })
+
+            $("#name").val(this.name);
+            $("#url").val(this.url);
+            // node.remote = $("#remote").val();
+            // node.folderName = $("#folder-name").val();
+            // node.folderLocal = $("#branch-local").val();
+
+            initialized = true;
         }
     });
 </script>
