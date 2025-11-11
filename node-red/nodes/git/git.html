@@ -1,11 +1,15 @@
 <!--
 Atenção:
   const category = ""; faz o sistema travar
+
+Padrão:
+  Se a entrada tem um id "nome", o campo de ajuda tem que ter id "nome-help"
 -->
 <script type="text/html" data-template-name="git">
     <div class="form-row">
         <label for="name"><i class="fa fa-tag"></i> Project name</label>
         <input type="text" id="name" placeholder="Project name">
+        <div id="name-help" class="nr-form"></div>
     </div>
 
     <div class="form-row">
@@ -61,6 +65,7 @@ Atenção:
 
 <script type="text/javascript">
 
+    const node = this;
     const registerType = "git";
     const paletteLabel = "git";
     const registerCategory = "git";
@@ -71,20 +76,45 @@ Atenção:
 
     const folderNameHelp = "Digite o caminho da pasta no servidor.<br>Por exemplo: <b>/git/projeto</b><br>No docker, você pode usar: <br><b>docker run --name recode \<br>-v _pasta_local_:/git/_folder_name_</b>";
 
+    node.nameFilterPass = false;
+
     let initialized = false
 
-    let name = "";
+    // rules from input field name (project name)
+    node.nameSelector = "#name";
+    node.namePartner  = /^[a-zA-Z0-9_]+$/
+    node.nameHelp     = "Este campo é obrigatorio e deve seguir o padrão /git/_folder_name_"
+
+    function validateField(selector,pattern,helpText) {
+        const f = function(selector,pattern,helpText){
+            if(!$(selector).length) {
+                return;
+            }
+
+            const value = $(selector).val();
+            const nameFilterPass = pattern.test(value);
+            if (!nameFilterPass) {
+                $(selector+"-help").html(helpText);
+                $(selector+"-help").show();
+                return
+            }
+            $(selector+"-help").hide();
+
+        }
+        $(selector).keyup(function() {
+            f(selector,pattern,helpText);
+        });
+        $(selector).blur(function() {
+            f(selector,pattern,helpText);
+        });
+        f(selector,pattern,helpText);
+    }
 
     RED.nodes.registerType(registerType, {
         category: registerCategory,
         color: componentColor,
         defaults: {
-            name:           {
-                value: "",
-                validate: RED.validators.regex(/^[a-z]+$/),
-                required: true
-            },
-            // endpoint:       { value: "http://server:8080/ingest", required: true },
+            name:           { value: "", validate: RED.validators.regex(node.namePartner) },
             url:            { value: "" },
             remoteBranch:   { value: "" },
             localBranch:    { value: "" },
@@ -105,6 +135,7 @@ Atenção:
 
         oneditsave: function () {
             this.name = $("#name").val();
+            return
             this.url = $("#url").val();
             this.remoteBranch = $("#remote-branch").val();
             this.localBranch = $("#local-branch").val();
@@ -112,6 +143,10 @@ Atenção:
 
         // is called immediately before the dialog is displayed.
         oneditprepare: function() {
+            validateField(node.nameSelector, node.namePartner, node.nameHelp);
+
+            $("#name").val(this.name);
+            return
 
             this.editor = RED.editor.createEditor({
                 id: 'node-input-example-editor',
