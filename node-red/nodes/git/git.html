@@ -80,10 +80,12 @@ Padrão:
 
     let initialized = false
 
-    // rules from input field name (project name)
+    // Regras para o nome do projeto (input id name)
     node.nameSelector = "#name";
     node.namePartner  = /^[a-zA-Z0-9_]+$/
-    node.nameHelp     = "Este campo é obrigatorio e deve seguir o padrão /git/_folder_name_"
+    node.nameHelp     = "Este campo é obrigatorio e deve seguir o padrão:<br>"+node.namePartner
+
+
 
     function validateField(selector,pattern,helpText) {
         const f = function(selector,pattern,helpText){
