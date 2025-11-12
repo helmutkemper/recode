@@ -1,0 +1,289 @@
+<!--
+Atenção:
+  const category = ""; faz o sistema travar
+
+Padrão:
+  Se a entrada tem um id "nome", o campo de ajuda tem que ter id "nome-help"
+-->
+<style>
+    .nr-form {
+        font-size: 12px;
+        opacity: .7;
+        margin-top: 4px;
+        margin-left:105px;
+        color:#d32f2f;
+    }
+</style>
+
+<script type="text/html" data-help-name="git">
+    <p>Clona o repositório a ser analisado.</p>
+    <h3>Entradas</h3>
+    <dl class="message-properties">
+        <dt>Componente git:password<span class="property-type">string</span></dt>
+        <dd>Permite definir usuário e senha ou token de acesso ao repositório.</dd>
+        <dt>Componente git:ssh<span class="property-type">string</span></dt>
+        <dd>Permite definir o conteúdo da chave ssh de acesso ao repositório</dd>
+    </dl>
+
+    <h3>Saídas</h3>
+    <dl class="message-properties">
+        <dt>Pasta clonada <span class="property-type">string</span></dt>
+        <dd>Retorna a pasta onde o repositório foi clonado e está pronto para análise.</dd>
+    </dl>
+
+    <h3>Detalhes</h3>
+    <p>Permite clonar um repositório específico para dentro do servidor, permitindo a análise do mesmo.</p>
+    <p>Como este projeto foi pensado para rodar na sua máquina local, você pode compartilhar a pasta com o docker, usado:</p>
+    <p></p>
+    <p><b>docker run --name recode <br>-v _pasta_local_:/git/_folder_name_</b></p>
+</script>
+
+<script type="text/html" data-template-name="git">
+    <div class="form-row">
+        <label for="name"><i class="fa fa-tag"></i> Project name</label>
+        <input type="text" id="name" placeholder="Project name">
+        <div id="name-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <label for="url"><i class="fa fa-tag"></i> Git URL</label>
+        <input type="text" id="url" placeholder="Project to clone URL">
+        <div id="url-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <label for="remote-branch"><i class="fa fa-tag"></i> Remote branch</label>
+        <input type="text" id="remote-branch" placeholder="Remote branch">
+        <div id="remote-branch-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <label><i class="fa fa-tag"></i> Local</label>
+        <span class="button-group">
+            <button id="clone-folder-fix" type="button" class="red-ui-button toggle selected button-clone-folder">Pasta fixa</button>
+            <button id="clone-folder-tmp" type="button" class="red-ui-button toggle button-clone-folder">Pasta temporária</button>
+        </span>
+    </div>
+
+    <div class="form-row">
+        <label for="folder-name">Folder</label>
+        <input type="text" id="folder-name" placeholder="Folder name" help-text="Será usado antes do nome do arquivo.">
+        <div id="folder-name-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <label for="local-branch"><i class="fa fa-tag"></i> Local branch</label>
+        <input type="text" id="local-branch" placeholder="Local branch">
+        <div id="local-branch-help" class="nr-form">
+            Nome do branch local para os commits.<br>Quando o repositório for baixado, o branch será criado de forma automática.
+        </div>
+    </div>
+
+    <div class="form-row">
+        <button id="input-clone" type="button" class="red-ui-button">Clone</button>
+    </div>
+
+    <div class="form-row">
+        <div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-example-editor"></div>
+    </div>
+
+</script>
+
+<script type="text/javascript">
+    (() => {
+        const node = this;
+        const registerType = "git";
+        const paletteLabel = "git";
+        const registerCategory = "git";
+        const icon = "font-awesome/fa-code-fork";
+        const componentColor = "#aaaaaa";
+        const inputs = 1
+        const outputs = 1
+
+        const folderNameHelp = "Digite o caminho da pasta no servidor.<br>Por exemplo: <b>/git/projeto</b><br>No docker, você pode usar: <br><b>docker run --name recode \<br>-v _pasta_local_:/git/_folder_name_</b>";
+
+        node.nameFilterPass = false;
+
+        let initialized = false
+
+        // Regras para o nome do projeto (input id name)
+        node.nameSelector = "#name";
+        node.namePartner  = /^[a-zA-Z0-9_]+$/
+        node.nameHelp     = "Este campo é obrigatorio e deve seguir o padrão:<br>"+node.namePartner;
+
+        // Regras para o endereço do repositório git
+
+        node.urlSelector = "#url";
+        node.urlPartner  = /^(?:(?:git|ssh|https?|file):\/\/(?:[^@\s]+@)?[^:\s/]+(?::\d+)?\/[\w./-]+|[\w.-]+@[\w.-]+:[\w./-]+)\.git(?:\/)?$/i;
+        node.urlHelp     = "Digite uma <b>url git</b> válida.";
+
+        node.remoteBranchSelector = "#remote-branch";
+        node.remoteBranchPartner  = /^(?!@$)(?!-)(?!\.)(?!.*\/\.)(?!.*\.\.)(?!.*\/\/)(?!.*@{)(?!.*(?:^|\/)[^/]*\.lock(?:\/|$))(?!.*\.$)[^ \x00-\x1F\x7F~^:?*\[\\]+(?:\/[^ \x00-\x1F\x7F~^:?*\[\\]+)*$/;
+        node.remoteBranchHelp     = "O nome do branch deve seguir as regras oficiais"
+
+        node.folderNameSelector = "#folder-name";
+        node.folderNamePartner  = /^[a-zA-Z0-9_]+$/;
+        node.folderNameHelp     = "Este campo é obrigatorio e deve seguir o padrão:<br>"+node.folderNamePartner;
+
+        function validateField(selector,pattern,helpText) {
+            const f = function(selector,pattern,helpText){
+                if(!$(selector).length) {
+                    return;
+                }
+
+                const value = $(selector).val();
+                const nameFilterPass = pattern.test(value);
+                if (!nameFilterPass) {
+                    $(selector+"-help").html(helpText);
+                    $(selector+"-help").show();
+                    return
+                }
+                $(selector+"-help").hide();
+
+            }
+            $(selector).keyup(function() {
+                f(selector,pattern,helpText);
+            });
+            $(selector).blur(function() {
+                f(selector,pattern,helpText);
+            });
+            f(selector,pattern,helpText);
+        }
+
+        RED.nodes.registerType(registerType, {
+            category: registerCategory,
+            color: componentColor,
+            defaults: {
+                name:           { value: "", validate: RED.validators.regex(node.namePartner) },
+                url:            { value: "" },
+                remoteBranch:   { value: "" },
+                localBranch:    { value: "" },
+                fix:            { value: "" },
+                fixFolderName:  { value: "" },
+                tmp:            { value: "" },
+                tmpFolderName:  { value: "" },
+                folderName:     { value: "" },
+                folderLocal:    { value: "" },
+            },
+            inputs: inputs,
+            outputs: outputs,
+            icon: icon,
+            label: function () {
+                return this.name ? paletteLabel+": "+this.name : paletteLabel;
+            },
+            paletteLabel: paletteLabel,
+
+            oneditsave: function () {
+                this.name = $("#name").val();
+                return
+                this.url = $("#url").val();
+                this.remoteBranch = $("#remote-branch").val();
+                this.localBranch = $("#local-branch").val();
+            },
+
+            // is called immediately before the dialog is displayed.
+            oneditprepare: function() {
+                validateField(node.nameSelector, node.namePartner, node.nameHelp);
+                validateField(node.urlSelector, node.urlPartner, node.urlHelp);
+                validateField(node.remoteBranchSelector, node.remoteBranchPartner, node.remoteBranchHelp);
+                validateField(node.folderNameSelector, node.folderNamePartner, node.folderNameHelp);
+
+                $("#name").val(this.name);
+                return
+
+                this.editor = RED.editor.createEditor({
+                    id: 'node-input-example-editor',
+                    mode: 'ace/mode/text',
+                    value: this.exampleText
+                });
+
+                $("#clone-folder-tmp").on("click", function() {
+
+                });
+
+                $("#clone-folder-fix").on("click", function() {
+
+                });
+
+                $("#input-clone").on("click", function() {
+
+                });
+
+
+                const folderNameDefaultFix = "/git/_folder_name_";
+                const folderNameDefaultTmp = "*-git-folder";
+
+                if(!initialized) {
+                    $("#folder-name").val("/git/_folder_name_");
+                    $("#folder-name-help").html(folderNameHelp);
+                }
+
+
+                $("#clone-folder-tmp").on("click", function() {
+                    let value = $("folder-name").val();
+                    // node.fixFolderName = value;
+
+                    $("#folder-name").attr("placeholder", "Prefixo da pasta");
+                    $("#folder-name").val("*-git-folder");
+                    $("#folder-name-help").html("Digite um prefixo para a pasta temporária, por exemplo: *-git-folder");
+
+                    // node.fix = false;
+                    // node.tmp = true;
+                });
+                $("#clone-folder-fix").on("click", function() {
+                    let value = $("folder-name").val();
+                    // node.tmpFolderName = value;
+
+                    $("#folder-name").attr("placeholder", "Nome da pasta");
+                    $("#folder-name").val("/git/_folder_name_");
+                    $("#folder-name-help").html(folderNameHelp);
+
+                    // node.fix = true;
+                    // node.tmp = false;
+                });
+
+                $(".button-clone-folder").on("click", function() {
+                    $(".button-clone-folder").removeClass("selected");
+                    $(this).addClass("selected");
+                })
+
+                $("#input-clone").on("click", function() {
+
+                })
+
+                $("#name").val(this.name);
+                $("#url").val(this.url);
+                // node.remote = $("#remote").val();
+                // node.folderName = $("#folder-name").val();
+                // node.folderLocal = $("#branch-local").val();
+
+                initialized = true;
+            }
+        });
+
+        RED.events.on('links:add', function(link) {
+            const src = RED.nodes.node(link.source.id);
+            const dst = RED.nodes.node(link.target.id);
+            // RED.notify("Conexão inválida: 'git-pull' → 'fs-delete'", "error", {timeout: 4000});
+            // Exemplo de regra: proibir "git-pull" -> "fs-delete"
+            const invalid = src?.type === 'git-pull' && dst?.type === 'fs-delete';
+            if (invalid) {
+                // Apenas notifica: não há veto oficial "pré-link".
+                RED.notify("Conexão inválida: 'git-pull' → 'fs-delete'", "error", {timeout: 4000});
+                // Dica: para “política de verdade”, use um linter (nrlint) — ver seção 3.
+            }
+        });
+
+        RED.events.on('links:remove', function(link) {
+            // English: react if you need to update hints when a link is removed
+            // Português: reaja se quiser atualizar dicas quando um link é removido
+        });
+
+        // RED.events.on("links:add", function(link){
+        //     console.log("Conectou:", link);   // objeto do link
+        // });
+        // RED.events.on("links:remove", function(link){
+        //     console.log("Desconectou:", link);
+        // });
+    })();
+</script>

@@ -19,7 +19,7 @@ module.exports = function (RED) {
 
     // GET: clique do botão (sem corpo)
     RED.httpAdmin.get('/git/:id/inject', function (req, res) {
-        const node = RED.nodes.getNode(req.params.id);
+        let node = RED.nodes.getNode(req.params.id);
         if (!node) { return res.sendStatus(404); }
         const payload = { from: 'git', click: true, at: new Date().toISOString() };
         RED.log.info(`[git] admin GET inject -> ${req.params.id}`);
@@ -90,6 +90,7 @@ module.exports = function (RED) {
         }
 
         node.status({ fill: 'grey', shape: 'dot', text: 'idle' });
+        node.status({ fill: "yellow", shape: "ring", text: config.name });
 
         node.on('input', function (msg, send, done) {
             const out = {
@@ -115,6 +116,26 @@ module.exports = function (RED) {
                 if (done) done();
             });
         });
+
+        /*
+        // exemplo de status --- início
+        node.status({ fill: "yellow", shape: "ring", text: "aguardando…" });
+
+        node.on("input", (msg, send, done) => {
+            // English: update status when things are OK
+            // Português: atualize o status quando estiver OK
+            node.status({ fill: "green", shape: "dot", text: "conectado" });
+            send(msg);
+            done();
+        });
+
+        node.on("close", () => {
+            // English: clear status on shutdown
+            // Português: limpe o status ao encerrar
+            node.status({});
+        });
+        // exemplo de status --- fim
+        */
     }
 
     RED.nodes.registerType('git', GitNode);
