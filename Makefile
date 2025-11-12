@@ -83,3 +83,9 @@ update-nodes:
 	$(MAKEFILE) make factory-reset
 	$(MAKEFILE) make build
 	$(MAKEFILE) make up
+
+.PHONY: pre-commit
+pre-commit:
+	$(MAKEFILE) make down
+	$(MAKEFILE) make reset-data
+	$(MAKEFILE) make factory-reset
