@@ -106,8 +106,13 @@ func writeJSON(w http.ResponseWriter, code int, obj any) {
 // Português:
 // corsPreflight lida com OPTIONS para CORS.
 func corsPreflight(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodOptions {
-		writeJSON(w, http.StatusNoContent, map[string]string{"ok": "true"})
+	if r.Method == http.MethodOptions || r.Method == http.MethodPost {
+
+		b, _ := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		log.Printf("%s", b)
+
+		writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 		return
 	}
 	http.NotFound(w, r)

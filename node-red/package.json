@@ -1,8 +1,5 @@
 {
-  "name": "recode-node-red",
-  "private": true,
-  "description": "Bare Node-RED runtime (no extra nodes)",
-  "version": "0.1.0",
-  "license": "MIT",
-  "dependencies": {}
+  "name": "@recode/common",
+  "version": "1.0.0",
+  "main": "index.js"
 }

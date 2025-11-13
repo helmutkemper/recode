@@ -25,13 +25,9 @@
 
 <script type="text/html" data-template-name="git-clone-branch">
     <div class="form-row">
-        <label for="node-input-cloneBranch">Usuário</label>
-        <input type="text" id="node-input-cloneBranch" placeholder="Usuário">
+        <label for="node-input-cloneBranch">Branch</label>
+        <input type="text" id="node-input-cloneBranch" placeholder="Branch to clone">
         <div id="node-input-cloneBranch-help" class="nr-form"></div>
-    </div>
-
-    <div class="form-row">
-        <div class="connections-erros form-tips" style="display:none;"></div>
     </div>
 
 </script>
@@ -39,79 +35,28 @@
 
 <script type="text/javascript">
     (() => {
-        class WiringRules {
-            #allowed;
-            #necessary;
-            #connected;
-
-            constructor(allowed = [], necessary = []) {
-                this.#allowed = allowed;
-                this.#necessary = necessary;
-                this.#connected = [];
-            }
-
-            add(id) {
-                this.#connected.push(id);
-                return this.verify(id);
-            }
-
-            remove(id) {
-                const i = this.#connected.indexOf(id);
-                if (i !== -1) this.#connected.splice(i, 1);
-            }
-
-            verify(id) {
-                return this.#allowed.includes(id);
-            }
-
-            missing() {
-                return this.#necessary.filter(x => !new Set(this.#connected).has(x));
-            }
-
-            error() {
-                const missing = wiring.missing()
-                const $form = $("#dialog-form");
-                const $err  = $form.find(".connections-erros");
-                if(missing.length !== 0) {
-                    $err.html(wiring.#error);
-                    $err.show();
-                    return;
-                }
-                $err.hide();
-            }
-
-            get #error() {
-                const items = this.missing();
-                if (!Array.isArray(items) || items.length === 0) return "";
-                const esc = s => String(s).replace(/[&<>"']/g, m =>
-                    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-                const lis = items.map(i => `<li>${esc(i)}</li>`).join("");
-                return `<p><strong>Lista de conexões faltando:</strong></p><ul>${lis}</ul>`;
-            }
-        }
-
-
-
         const node = this;
         const registerType = "git-clone-branch";
         const paletteLabel = "git-clone-branch";
         const category = "git";
         const icon = "font-awesome/fa-code-fork";
         const componentColor = "#aaaaaa";
-        const inputs = 0
-        const outputs = 1
+        const inputs = 0;
+        const outputs = 1;
+        const allowedInConn = ["git-clone"];
 
-        const connectionAllowed = ["git-pass"];
-        const connectionNecessary = ["git-pass"];
 
-        node.cloneBranchSelector = "#clone-branch";
+        node.cloneBranchSelector = "#cloneBranch";
         node.cloneBranchPartner  = /^(?!@$)(?!-)(?!\.)(?!.*\/\.)(?!.*\.\.)(?!.*\/\/)(?!.*@{)(?!.*(?:^|\/)[^/]*\.lock(?:\/|$))(?!.*\.$)[^ \x00-\x1F\x7F~^:?*\[\\]+(?:\/[^ \x00-\x1F\x7F~^:?*\[\\]+)*$/;
         node.cloneBranchHelp     = "O nome do branch deve seguir as regras oficiais";
 
-        const wiring = new WiringRules(connectionAllowed,connectionNecessary);
+        function allowedConn(list, value) {
+            return Array.isArray(list) && typeof value === "string" && list.includes(value);
+        }
 
         function validateField(selector,pattern,helpText) {
             selector = "#node-input-"+selector.slice(1);
+            console.log("selector: ", selector);
             const f = function(selector,pattern,helpText){
                 if(!$(selector).length) {
                     return;
@@ -140,13 +85,13 @@
             category: category,
             color: componentColor,
             defaults: {
-                cloneBranch: { value: "", required: true }
+                cloneBranch: { value: "default", required: true }
             },
             inputs: inputs,
             outputs: outputs,
             icon: icon,
             label: function() {
-                return this.name ? paletteLabel+": "+this.name : paletteLabel;
+                return this.cloneBranch ? paletteLabel+": "+this.cloneBranch : paletteLabel;
             },
             oneditsave: function(){
                 node.cloneBranch     = $(node.cloneBranchSelector).val();
@@ -154,7 +99,6 @@
             oneditprepare: function() {
                 validateField(node.cloneBranchSelector, node.cloneBranchPartner, node.cloneBranchHelp);
                 $(node.cloneBranchSelector).val(node.cloneBranch);
-                wiring.error("#git-clone-branch-error");
             }
         });
 
@@ -162,19 +106,16 @@
             const src = RED.nodes.node(link.source.id);
             const dst = RED.nodes.node(link.target.id);
 
-            if( wiring.add(dst?.type) ){
+            if( allowedConn(allowedInConn, dst?.type) ) {
                 RED.notify("Conexão ok: '"+src?.type+"' → '"+dst?.type+"'", "success");
-                return;
+                return
             }
-
             RED.notify("Conexão inválida: '"+src?.type+"' → '"+dst?.type+"'", "error");
         });
 
         RED.events.on('links:remove', function(link) {
             // const src = RED.nodes.node(link.source.id);
-            const dst = RED.nodes.node(link.target.id);
-
-            wiring.remove(dst?.type)
+            // const dst = RED.nodes.node(link.target.id);
         });
     })();
 </script>

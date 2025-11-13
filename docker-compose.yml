@@ -13,6 +13,7 @@ services:
       - ./node-red/data:/data
       - ./node-red/nodes:/data/nodes
       - ./node-red/core-disabled:/data/core-disabled
+      - ./node-red/shared-common:/data/node_modules/@recode/common
     restart: unless-stopped
 
   server:
