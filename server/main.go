@@ -107,12 +107,12 @@ func writeJSON(w http.ResponseWriter, code int, obj any) {
 // corsPreflight lida com OPTIONS para CORS.
 func corsPreflight(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions || r.Method == http.MethodPost {
-
+		time.Sleep(10 * time.Second)
 		b, _ := io.ReadAll(r.Body)
 		defer r.Body.Close()
 		log.Printf("%s", b)
 
-		writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+		writeJSON(w, http.StatusOK, map[string]string{"ok": "vivo!"})
 		return
 	}
 	http.NotFound(w, r)

@@ -14,6 +14,7 @@ services:
       - ./node-red/nodes:/data/nodes
       - ./node-red/core-disabled:/data/core-disabled
       - ./node-red/shared-common:/data/node_modules/@recode/common
+      - ./node-red/frontend:/data/frontend
     restart: unless-stopped
 
   server:

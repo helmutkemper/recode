@@ -1,4 +1,5 @@
 module.exports = {
+    httpStatic: "/data/frontend",
     userDir: "/data",
     uiPort: process.env.PORT || 1880,
     flowFile: process.env.FLOWS || "flows.json",

@@ -88,5 +88,5 @@ module.exports = function(RED) {
         });
         this.on("close", (removed, done) => { done(); });
     }
-    RED.nodes.registerType("git-clone-branch",gitPasswordNode);
+    RED.nodes.registerType("chaos-create-network",gitPasswordNode);
 }

@@ -1,12 +1,6 @@
-<style>
-    .nr-form {
-        font-size: 12px;
-        opacity: .7;
-        margin-top: 4px;
-        margin-left:105px;
-        color:#d32f2f;
-    }
-</style>
+<link rel="stylesheet" href="/commons.css">
+<script src="/commons.js"></script>
+<script src="/regex.js"></script>
 
 <script type="text/html" data-help-name="git-clone-branch">
     <p>Define o branch do projeto a ser clonado.</p>
@@ -32,7 +26,6 @@
 
 </script>
 
-
 <script type="text/javascript">
     (() => {
         const node = this;
@@ -43,49 +36,17 @@
         const componentColor = "#aaaaaa";
         const inputs = 0;
         const outputs = 1;
-        const allowedInConn = ["git-clone"];
-
+        const allowedInConn = ["git-password"];
 
         node.cloneBranchSelector = "#cloneBranch";
-        node.cloneBranchPartner  = /^(?!@$)(?!-)(?!\.)(?!.*\/\.)(?!.*\.\.)(?!.*\/\/)(?!.*@{)(?!.*(?:^|\/)[^/]*\.lock(?:\/|$))(?!.*\.$)[^ \x00-\x1F\x7F~^:?*\[\\]+(?:\/[^ \x00-\x1F\x7F~^:?*\[\\]+)*$/;
+        node.cloneBranchPartner  = getRegexBranchName();
         node.cloneBranchHelp     = "O nome do branch deve seguir as regras oficiais";
-
-        function allowedConn(list, value) {
-            return Array.isArray(list) && typeof value === "string" && list.includes(value);
-        }
-
-        function validateField(selector,pattern,helpText) {
-            selector = "#node-input-"+selector.slice(1);
-            console.log("selector: ", selector);
-            const f = function(selector,pattern,helpText){
-                if(!$(selector).length) {
-                    return;
-                }
-
-                const value = $(selector).val();
-                const nameFilterPass = pattern.test(value);
-                if (!nameFilterPass) {
-                    $(selector+"-help").html(helpText);
-                    $(selector+"-help").show();
-                    return
-                }
-                $(selector+"-help").hide();
-
-            }
-            $(selector).keyup(function() {
-                f(selector,pattern,helpText);
-            });
-            $(selector).blur(function() {
-                f(selector,pattern,helpText);
-            });
-            f(selector,pattern,helpText);
-        }
 
         RED.nodes.registerType(registerType,{
             category: category,
             color: componentColor,
             defaults: {
-                cloneBranch: { value: "default", required: true }
+                cloneBranch: { value: "", required: true }
             },
             inputs: inputs,
             outputs: outputs,
@@ -106,16 +67,16 @@
             const src = RED.nodes.node(link.source.id);
             const dst = RED.nodes.node(link.target.id);
 
-            if( allowedConn(allowedInConn, dst?.type) ) {
+            if( allowed(allowedInConn, src?.type) ) {
                 RED.notify("Conexão ok: '"+src?.type+"' → '"+dst?.type+"'", "success");
                 return
             }
             RED.notify("Conexão inválida: '"+src?.type+"' → '"+dst?.type+"'", "error");
         });
 
-        RED.events.on('links:remove', function(link) {
-            // const src = RED.nodes.node(link.source.id);
-            // const dst = RED.nodes.node(link.target.id);
-        });
+        // RED.events.on('links:remove', function(link) {
+        //     // const src = RED.nodes.node(link.source.id);
+        //     // const dst = RED.nodes.node(link.target.id);
+        // });
     })();
 </script>

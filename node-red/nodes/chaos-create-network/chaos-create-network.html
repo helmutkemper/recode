@@ -1,0 +1,104 @@
+<link rel="stylesheet" href="/commons.css">
+<script src="/commons.js"></script>
+<script src="/regex.js"></script>
+
+<script type="text/html" data-help-name="chaos-create-network">
+    <p>Cria uma rede docker exclusiva para o teste de caos.<br><br><b>Nota:</b> Ela é necessária para poder endereçar os containers por nome ao invés de usar endereços de rede.</p>
+    <h3>Entradas</h3>
+    <dl class="message-properties">
+        <dt>Formulário manual</dt>
+        <dd>O desenvolvedor necessita informar <b>nome</b>, <b>subnet</b> e <b>gateway</b> da rede.</dd>
+    </dl>
+</script>
+
+<script type="text/html" data-template-name="chaos-create-network">
+    <div class="form-row">
+        <label for="node-input-name">Nome</label>
+        <input type="text" id="node-input-name" placeholder="chaos_network">
+        <div id="node-input-name-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-subnet">Subnet</label>
+        <input type="input" id="node-input-subnet" placeholder="10.0.0.0/16">
+        <div id="node-input-subnet-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-gateway">Gateway</label>
+        <input type="input" id="node-input-gateway" placeholder="10.0.0.1">
+        <div id="node-input-gateway-help" class="nr-form"></div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    (() => {
+        const node = this;
+        const registerType = "chaos-create-network";
+        const paletteLabel = "network";
+        const category = "chaos";
+        const icon = "font-awesome/fa-bug";
+        const componentColor = "#aaaaaa";
+        const inputs = 0;
+        const outputs = 1;
+        const allowedInConn = ["git-password"];
+
+        node.nameSelector = "#name";
+        node.namePartner  = getRegexDns1123Label();
+        node.nameHelp     = "O nome deve seguir o padrão DNS-1123 para rótulos";
+
+        node.subnetSelector = "#subnet";
+        node.subnetPartner  = getRegexCidrIpv4();
+        node.subnetHelp     = "O valor da subnet deve seguir o padrão CIDR IPv4";
+
+        node.gatewaySelector = "#gateway";
+        node.gatewayPartner  = getRegexIpv4Gateway();
+        node.gatewayHelp     = "O valor do gateway deve seguir o padrão IPv4";
+
+        RED.nodes.registerType(registerType,{
+            category: category,
+            color: componentColor,
+            defaults: {
+                name: { value: "chaos-network", required: true },
+                subnet: { value: "10.0.0.0/16", required: true },
+                gateway: { value: "10.0.0.1", required: true }
+            },
+            inputs: inputs,
+            outputs: outputs,
+            icon: icon,
+            label: function() {
+                return this.name ? paletteLabel+": "+this.name : paletteLabel;
+            },
+            oneditsave: function(){
+                node.name     = $(node.nameSelector).val();
+                node.subnet   = $(node.subnetSelector).val();
+                node.gateway  = $(node.gatewaySelector).val();
+            },
+            oneditprepare: function() {
+                validateField(node.nameSelector, node.namePartner, node.nameHelp);
+                validateField(node.subnetSelector, node.subnetPartner, node.subnetHelp);
+                validateField(node.gatewaySelector, node.gatewayPartner, node.gatewayHelp);
+
+                $(node.nameSelector).val(node.name);
+                $(node.subnetSelector).val(node.subnet);
+                $(node.gatewaySelector).val(node.gateway);
+            }
+        });
+
+        RED.events.on('links:add', function(link) {
+            const src = RED.nodes.node(link.source.id);
+            const dst = RED.nodes.node(link.target.id);
+
+            if( allowed(allowedInConn, src?.type) ) {
+                RED.notify("Conexão ok: '"+src?.type+"' → '"+dst?.type+"'", "success");
+                return
+            }
+            RED.notify("Conexão inválida: '"+src?.type+"' → '"+dst?.type+"'", "error");
+        });
+
+        // RED.events.on('links:remove', function(link) {
+        //     // const src = RED.nodes.node(link.source.id);
+        //     // const dst = RED.nodes.node(link.target.id);
+        // });
+    })();
+</script>
