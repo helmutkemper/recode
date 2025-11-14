@@ -1,0 +1,111 @@
+<link rel="stylesheet" href="/commons.css">
+<script src="/commons.js"></script>
+<script src="/regex.js"></script>
+<script src="/connectionsRules.js"></script>
+
+<script type="text/html" data-help-name="chaos-garbage-collector">
+    <p>Define o coletor de lixo.<br><br>Remove containers, imagens e redes criadas pelo teste.</p>
+    <h3>Entradas</h3>
+    <dl class="message-properties">
+        <dt>Formulário manual</dt>
+        <dd>O desenvolvedor necessita informar o local onde salvar dados do teste e nomes de imagens, container e redes a serem removidos.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>O teste costuma criar uma estrutura docker complexa, que deixa de fazer sentido ao final do teste, apenas ocupando espaço no computador hospedeiro, e deve ser removida.</p>
+    <p></p>
+    <p>Imagine o teste de chaos como sendo um teste de integração com falhas que vai necessitar instalar banco de dados, filas e qualquer outra necessidade sua, porém, ao final do teste essa estrutura se torna desnecessária e pode ser removida.</p>
+    <p></p>
+    <p>Esta é a finalidade desse componente.</p>
+    <p></p>
+    <p>Porém, antes da remoção, o componente salva a saída padrão, quando possível, em uma pasta, para que o teste possa ser analisado posteriormente.</p>
+    <p></p>
+</script>
+
+<script type="text/html" data-template-name="chaos-garbage-collector">
+    <div class="form-row">
+        <label for="node-input-savePath">Save path</label>
+        <input type="text" id="node-input-savePath" placeholder="./end">
+        <div id="node-input-savePath-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-names"></div>
+        <div id="node-input-names-help" class="nr-form"></div>
+    </div>
+</script>
+
+<script type="text/javascript">
+
+
+        let registerType = "chaos-garbage-collector";
+        let paletteLabel = "Garbage collector";
+        let category = "chaos";
+        let icon = "font-awesome/fa-bug";
+        let componentColor = "#aaaaaa";
+        let inputs = 0;
+        let outputs = 1;
+        let allowedOutConn = ["chaos-create-network"];
+
+        let savePathSelector = "#savePath";
+        let savePathPartner  = getRegexLinuxRelativePathSafe();
+        let savePathHelp     = "Caminho de pasta linux, relativo ao local onde o projeto roda";
+
+        let namesExampleText = "# Imagine that your test requires installing\n" +
+            "# a MongoDB image on your machine, but after\n" +
+            "# the test, it doesn't make sense to keep\n" +
+            "# this image on the machine.\n#\n" +
+            "# Place one element per line and use the `#` \n" +
+            "# character for comments.\n" +
+            "#\n" +
+            "# Example:\n" +
+            "# mongo:6.0.6";
+
+        RED.nodes.registerType(registerType,{
+            category: category,
+            color: componentColor,
+            defaults: {
+                savePath: { value: "log", required: true },
+                names: { value: namesExampleText, required: false }
+            },
+            inputs: inputs,
+            outputs: outputs,
+            outputLabels: function(index) {
+                return "The next step: Network creator";
+            },
+            icon: icon,
+            label: function() {
+                return this.savePath ? paletteLabel+": "+this.savePath : paletteLabel;
+            },
+            oneditsave: function(){
+                this.savePath = $(savePathSelector).val();
+
+                this._names = this.editor.getValue();
+                this.names = this._names;
+
+                this.editor.destroy();
+                delete this.editor;
+            },
+            oneditprepare: function() {
+
+                let editValue = this._names ? this._names : this.names;
+                this.editor = RED.editor.createEditor({
+                    id: 'node-input-names',
+                    mode: 'ace/mode/text',
+                    value: editValue
+                });
+
+                validateField(savePathSelector, savePathPartner, savePathHelp);
+
+                $(savePathSelector).val(this.savePath);
+            },
+            oneditcancel: function() {
+                this.editor.destroy();
+                delete this.editor;
+            },
+            oneditdelete: function() {
+                this.editor.destroy();
+                delete this.editor;
+            }
+        });
+</script>

@@ -1,5 +1,5 @@
 module.exports = function(RED) {
-    function chaosCreateNetwork(config) {
+    function chaosGarbageCollector(config) {
         RED.nodes.createNode(this,config);
         let node = this;
 
@@ -88,5 +88,5 @@ module.exports = function(RED) {
         });
         this.on("close", (removed, done) => { done(); });
     }
-    RED.nodes.registerType("chaos-create-network",chaosCreateNetwork);
+    RED.nodes.registerType("chaos-garbage-collector",chaosGarbageCollector);
 }

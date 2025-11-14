@@ -217,3 +217,60 @@ function getRegexIpv4Gateway() {
     // Last octet: 1–254 (no .0 or .255)
     return /^(?!(?:127|169\.254)\.)(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4])$/;
 }
+
+/**
+ * getRegexLinuxRelativePathSafe
+ *
+ * English:
+ *  Returns a regex for a **safe relative Linux path** intended for creating folders.
+ *  Rules enforced:
+ *   - Must be **relative** (cannot start with `/`).
+ *   - No empty segments or `//`.
+ *   - No `.` or `..` segments (prevents traversal).
+ *   - Each segment (folder name) allows only `[A–Z a–z 0–9 . _ -]`, length 1–255.
+ *   - No NUL (`\x00`). No trailing `/`.
+ *
+ *  Notes:
+ *   - Hidden names like `.git` are **allowed** (only `.` and `..` are forbidden).
+ *   - This checks syntax only; actual creation depends on permissions/existence.
+ *
+ * Português:
+ *  Retorna uma regex para um **path relativo seguro no Linux** para criar pastas.
+ *  Regras aplicadas:
+ *   - Deve ser **relativo** (não pode começar com `/`).
+ *   - Sem segmentos vazios ou `//`.
+ *   - Sem segmentos `.` ou `..` (evita travessia de diretórios).
+ *   - Cada segmento (nome da pasta) permite apenas `[A–Z a–z 0–9 . _ -]`, tamanho 1–255.
+ *   - Sem NUL (`\x00`). Sem `/` no final.
+ *
+ *  Observações:
+ *   - Nomes “ocultos” como `.git` são **permitidos** (apenas `.` e `..` são proibidos).
+ *   - Valida só a sintaxe; a criação real depende de permissões/existência.
+ *
+ * @returns {RegExp} Regex that matches a safe relative Linux directory path.
+ *
+ * @example
+ *  const rx = getRegexLinuxRelativePathSafe();
+ *  rx.test("assets/images/icons");     // true
+ *  rx.test(".config/nvim");            // true
+ *  rx.test("..");                      // false (traversal)
+ *  rx.test("a//b");                    // false (empty segment)
+ *  rx.test("/var/tmp");                // false (absolute)
+ *  rx.test("folder/");                 // false (trailing slash)
+ */
+function getRegexLinuxRelativePathSafe() {
+    // Breakdown:
+    // ^                      start
+    // (?!\/)                 not starting with '/'
+    // (?!.*\/\/)             no double slashes anywhere
+    // (?!.*\x00)             no NUL byte
+    // (?:                    zero or more "<segment>/"
+    //   (?!\.{1,2}(?:\/|$))  segment is not "." or ".."
+    //   [A-Za-z0-9._-]{1,255}
+    //   /
+    // )*
+    // (?!\.{1,2}$)           last segment is not "." or ".."
+    // [A-Za-z0-9._-]{1,255}  last segment
+    // $                      end
+    return /^(?!\/)(?!.*\/\/)(?!.*\x00)(?:(?!\.{1,2}(?:\/|$))[A-Za-z0-9._-]{1,255}\/)*(?!\.{1,2}$)[A-Za-z0-9._-]{1,255}$/;
+}
