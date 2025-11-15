@@ -1,0 +1,64 @@
+<script type="text/html" data-help-name="chaos-new-container-from-image">
+    <p>Cria um container baseado em uma imagem existente.<br><br>Por exemplo: <b>mongo:6.0.6</b></p>
+    <h3>Entradas</h3>
+    <dl class="message-properties">
+        <dt>Formulário manual</dt>
+        <dd>O desenvolvedor necessita informar o nome da imagem usada como referência para criar o container.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>É o equivalente aos comandos <b>docker pull</b> e <b>docker make</b> para criar um container</p>
+    <p></p>
+</script>
+
+<script type="text/html" data-template-name="chaos-new-container-from-image">
+    <div class="form-row">
+        <label for="node-input-image">Save path</label>
+        <input type="text" id="node-input-image" placeholder="mongo:6.0.6">
+        <div id="node-input-image-help" class="nr-form"></div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    (() => {
+        const node = this;
+        const registerType = "chaos-new-container-from-image";
+        const paletteLabel = "container";
+        const category = "chaos";
+        const icon = "font-awesome/fa-bug";
+        const componentColor = "#aaaaaa";
+        const inputs = 1;
+        const outputs = 1;
+
+        node.imageSelector = "#image";
+        node.imagePartner  = //;
+        node.imageHelp     = "Defina o nome da imagem";
+
+        RED.nodes.registerType(registerType,{
+            category: category,
+            color: componentColor,
+            defaults: {
+                image: { value: "mongo:6.0.6", required: true }
+            },
+            inputs: inputs,
+            outputs: outputs,
+            inputLabels: function(index) {
+                return "A previous step: Create network";
+            },
+            outputLabels: function(index) {
+                return "The next step: ***";
+            },
+            icon: icon,
+            label: function() {
+                return this.image ? paletteLabel+": "+this.image : paletteLabel;
+            },
+            oneditsave: function(){
+                node.image = $(node.imageSelector).val();
+            },
+            oneditprepare: function() {
+                validateField(node.imageSelector, node.imagePartner, node.imageHelp);
+                $(node.imageSelector).val(node.image);
+            }
+        });
+    })();
+</script>
