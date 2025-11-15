@@ -21,7 +21,19 @@ module.exports = {
         theme: "midnight",
         palette: { editable: false, categories: ["git"] },
         projects: { enabled: false },
-        tours: false
+        tours: false,
+        page: {
+            /** Extra CSS files (loaded in <head> of the editor) */
+            css: [
+                "/data/frontend/commons.css"
+            ],
+            /** Extra JS files (loaded in <head> of the editor) */
+            scripts: [
+                "/data/frontend/commons.js",
+                "/data/frontend/regex.js",
+                "/data/frontend/connectionsRules.js"
+            ]
+        }
     },
 
     logging: { console: { level: "info", metrics: false, audit: false } },
