@@ -1,5 +1,5 @@
 /**
- * Link Guard v2 — Multiple Rules
+ * Link Guard — Multiple Rules
  *
  * English:
  *  Editor-side policy that validates newly created links in Node-RED and removes only
@@ -22,14 +22,6 @@
  */
 
 (() => {
-  // ======================================================================
-  // Link Guard v2 — múltiplas regras
-  // English:
-  //   Validates newly created links and removes only the offending ones.
-  //
-  // Português:
-  //   Valida links recém-criados e remove apenas os inválidos.
-  // ======================================================================
 
   // Evita registrar duas vezes ao reabrir o editor
   if (window.__recodeLinkGuardV2) return;
@@ -55,26 +47,35 @@
    *   - maxOutBySourceType: limite de saídas por tipo origem
    */
   const LINK_POLICY = {
-    // English: links must be within the same workspace/tab
-    // Português: links devem ficar na mesma aba/workspace
-    /** @type {boolean} */
+    /**
+     * English: links must be within the same workspace/tab
+     *
+     * Português: links devem ficar na mesma aba/workspace
+     *
+     * @type {boolean} */
     sameTabOnly: true,
 
-    // English: what to do when maxIn/maxOut is exceeded
-    //   'keep-last'  -> keep the new link, remove older ones
-    //   'reject-new' -> remove the new link, keep older ones
-    // Português: o que fazer ao exceder os limites
-    /** @type {{onMaxIn: "keep-last"|"reject-new", onMaxOut: "keep-last"|"reject-new"}} */
+    /**
+     * English: what to do when maxIn/maxOut is exceeded
+     *
+     *   'keep-last'  -> keep the new link, remove older ones
+     *   'reject-new' -> remove the new link, keep older ones
+     *
+     * Português: o que fazer ao exceder os limites
+     *
+     * @type {{onMaxIn: "keep-last"|"reject-new", onMaxOut: "keep-last"|"reject-new"}} */
     behavior: {
       onMaxIn:  "reject-new",
       onMaxOut: "reject-new",
     },
 
-    // English: allowed pairs by SOURCE node type → list of DESTINATION types
-    //   If a src type is not present here, it means "no destinations allowed".
-    //   You can add a fallback with key "*": ["debug", ...] if desired.
-    // Português: pares permitidos pelo tipo de nó de ORIGEM → lista de DESTINOS
-    /** @type {Record<string,string[]>} */
+    /**
+     * English: allowed pairs by SOURCE node type → list of DESTINATION types
+     *   If a src type is not present here, it means "no destinations allowed".
+     *   You can add a fallback with key "*": ["debug", ...] if desired.
+     *
+     * Português: pares permitidos pelo tipo de nó de ORIGEM → lista de DESTINOS
+     * @type {Record<string,string[]>} */
     pairs: {
       "git-clone-branch": ["git-password"],
       "git-password":     ["chaos-garbage-collector", "debug"],
@@ -82,16 +83,22 @@
       // "*": ["debug"] // fallback opcional
     },
 
-    // English: per TARGET TYPE inbound links limit (max inputs from wires)
-    // Português: limite de entradas por TIPO de nó DESTINO
-    /** @type {Record<string,number>} */
+    /**
+     * English: per TARGET TYPE inbound links limit (max inputs from wires)
+     *
+     * Português: limite de entradas por TIPO de nó DESTINO
+     *
+     * @type {Record<string,number>} */
     maxInByTargetType: {
         "chaos-create-network": 1
     },
 
-    // English: per SOURCE TYPE outbound links limit (fan-out)
-    // Português: limite de saídas por TIPO de nó ORIGEM
-    /** @type {Record<string,number>} */
+    /**
+     * English: per SOURCE TYPE outbound links limit (fan-out)
+     *
+     * Português: limite de saídas por TIPO de nó ORIGEM
+     *
+     * @type {Record<string,number>} */
     maxOutBySourceType: {
       "chaos-create-network": 1
     }
