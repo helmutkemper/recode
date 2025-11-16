@@ -77,10 +77,12 @@
      * Português: pares permitidos pelo tipo de nó de ORIGEM → lista de DESTINOS
      * @type {Record<string,string[]>} */
     pairs: {
-      "git-clone-branch": ["git-password"],
-      "git-password":     ["chaos-garbage-collector", "debug"],
+      // "git-clone-branch": ["git-password"],
+      // "git-password":     ["chaos-garbage-collector", "debug"],
       "chaos-garbage-collector": ["chaos-create-network"],
+      "chaos-create-network": ["chaos-new-container-from-image"],
       // "*": ["debug"] // fallback opcional
+
     },
 
     /**

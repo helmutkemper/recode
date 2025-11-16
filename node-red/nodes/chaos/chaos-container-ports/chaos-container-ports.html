@@ -1,0 +1,94 @@
+<script type="text/html" data-help-name="chaos-container-ports">
+    <p>Define as portas do container que serão expostas ao mundo.</p>
+    <h3>Entradas</h3>
+    <dl class="message-properties">
+        <dt>Formulário manual</dt>
+        <dd>O desenvolvedor necessita informar uma porta porta, a ser exposta ao mundo, por elemento.</dd>
+    </dl>
+</script>
+
+<script type="text/html" data-template-name="chaos-container-ports">
+    <div class="form-row">
+        <label for="node-input-protocol">Protocol</label>
+        <input type="text" id="node-input-protocol">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-container">Container port</label>
+        <input type="input" id="node-input-container" placeholder="8080">
+        <div id="node-input-container-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-local">Local port</label>
+        <input type="input" id="node-input-local" placeholder="8080">
+        <div id="node-input-local-help" class="nr-form"></div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    (() => {
+        const node = this;
+        const registerType = "chaos-container-ports";
+        const paletteLabel = "port";
+        const category = "chaos";
+        const icon = "font-awesome/fa-bug";
+        const componentColor = "#aaaaaa";
+        const inputs = 0;
+        const outputs = 1;
+
+        node.protocolSelector = "#protocol";
+
+        node.containerSelector = "#container";
+        node.containerPartner  = getRegexServerPort();
+        node.containerHelp     = "O valor da porta só pode conter números";
+
+        node.localSelector = "#local";
+        node.localPartner  = getRegexServerPort();
+        node.localHelp     = "O valor da porta só pode conter números";
+
+        RED.nodes.registerType(registerType,{
+            category: category,
+            color: componentColor,
+            defaults: {
+                protocol: { value: "", required: true },
+                container: { value: "", required: true },
+                local: { value: "", required: true }
+            },
+            inputs: inputs,
+            outputs: outputs,
+            outputLabels: function(index) {
+                return "The next step: ***";
+            },
+            icon: icon,
+            label: function() {
+                return this.container ? `${paletteLabel}: ${this.local}:${this.container}/${this.protocol}` : paletteLabel;
+            },
+            oneditsave: function(){
+                node.protocol     = $(node.protocolSelector.slice(1)).val();
+                node.subnet   = $(node.subnetSelector).val();
+                node.gateway  = $(node.gatewaySelector).val();
+            },
+            oneditprepare: function() {
+                $("#node-input-protocol").typedInput({
+                    types: [
+                        {
+                            value: "tcp",
+                            options: [
+                                { value: "tcp", label: "tcp"},
+                                { value: "udp", label: "udp"}
+                            ]
+                        }
+                    ]
+                })
+
+                validateField(node.containerSelector, node.containerPartner, node.containerHelp);
+                validateField(node.localSelector, node.localPartner, node.localHelp);
+
+                $(node.protocolSelector.slice(1)).val(node.protocol);
+                $(node.containerSelector).val(node.container);
+                $(node.localSelector).val(node.local);
+            }
+        });
+    })();
+</script>

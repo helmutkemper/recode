@@ -1,0 +1,117 @@
+<script type="text/html" data-help-name="chaos-environment-vars">
+    <p>Define as variáveis de ambiente do container.</p>
+    <h3>Entradas</h3>
+    <dl class="message-properties">
+        <dt>Formulário manual</dt>
+        <dd>O desenvolvedor necessita informar as variáveis de ambiente do container, uma por linha.</dd>
+        <dd>&nbsp;</dd>
+        <dd>Use o caractere <b>#</b> como sendo o primeiro caractere da linha para comentários.</dd>
+        <dd>&nbsp;</dd>
+        <dd><b>Exemplo:</b></dd>
+        <dd>&nbsp;</dd>
+        <dd><code># Configura o mongodb para<br># aceitar conexão de qualquer<br># endereço de entrada<br>--bind_ip_all</code></dd>
+    </dl>
+</script>
+
+<script type="text/html" data-template-name="chaos-environment-vars">
+    <div class="form-row">
+        <label for="node-input-envvars">Protocol</label>
+
+    <!-- Hidden field that Node-RED uses to persist the property -->
+    <input type="hidden" id="node-input-envvars">
+
+    <!-- Visual editor container (Ace/Monaco via RED.editor) -->
+    <div id="node-input-envvars-editor" class="node-text-editor"
+         style="height:250px; min-height:150px;"></div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    (() => {
+        // const node = this;
+        const registerType = "chaos-environment-vars";
+        const paletteLabel = "envvar";
+        const category = "chaos";
+        const icon = "font-awesome/fa-bug";
+        const componentColor = "#aaaaaa";
+        const inputs = 0;
+        const outputs = 1;
+
+        RED.nodes.registerType(registerType,{
+            category: category,
+            color: componentColor,
+            defaults: {
+                /** Node property bound to #node-input-envvars (hidden input) */
+                envvars: { value: "", required: true }
+            },
+            inputs: inputs,
+            outputs: outputs,
+            outputLabels: function() { return "The next step: ***"; },
+            icon: icon,
+            label: function() { return paletteLabel; },
+
+            /**
+             * oneditprepare
+             *
+             * English:
+             *  Create the editor on the dedicated DIV and seed it with the current value.
+             *  Keep the hidden input (#node-input-envvars) in sync for persistence.
+             *
+             * Português:
+             *  Cria o editor na DIV dedicada e preenche com o valor atual.
+             *  Mantém o input oculto (#node-input-envvars) sincronizado para persistência.
+             */
+            oneditprepare: function () {
+                // Seed hidden input with current property value so import/undo work as expected
+                $("#node-input-envvars").val(this.envvars || "");
+
+                // Create editor bound to the *-editor DIV (not the hidden input)
+                this.editor = RED.editor.createEditor({
+                id:    "node-input-envvars-editor",
+                mode:  "ace/mode/text",  // use text; change to 'ace/mode/yaml' or similar if desired
+                value: $("#node-input-envvars").val()
+                });
+
+                // Optional: auto-resize fix after dialog opens
+                setTimeout(() => { try { this.editor.resize(true); } catch {} }, 0);
+            },
+
+            /**
+             * oneditsave
+             *
+             * English:
+             *  Push editor contents into the hidden input so Node-RED saves it to `envvars`.
+             *
+             * Português:
+             *  Envia o conteúdo do editor para o input oculto para o Node-RED salvar em `envvars`.
+             */
+            oneditsave: function(){
+                if (this.editor) {
+                    const value = this.editor.getValue();
+                    $("#node-input-envvars").val(value); // Node-RED persists from inputs matching defaults
+                    this.envvars = value;                // keep instance in sync (useful for label/update)
+
+                    this.editor.destroy();
+                    delete this.editor;
+                }
+            },
+
+            /**
+            * oneditcancel / oneditdelete
+            *
+            * English:
+            *  Cleanly destroy the editor to avoid leaks.
+            *
+            * Português:
+            *  Destrói o editor corretamente para evitar vazamentos.
+            */
+            oneditcancel: function() {
+                if (this.editor) { this.editor.destroy(); delete this.editor; }
+            },
+
+            oneditdelete: function() {
+                if (this.editor) { this.editor.destroy(); delete this.editor; }
+            }
+        });
+    })();
+</script>

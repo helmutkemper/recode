@@ -274,3 +274,46 @@ function getRegexLinuxRelativePathSafe() {
     // $                      end
     return /^(?!\/)(?!.*\/\/)(?!.*\x00)(?:(?!\.{1,2}(?:\/|$))[A-Za-z0-9._-]{1,255}\/)*(?!\.{1,2}$)[A-Za-z0-9._-]{1,255}$/;
 }
+
+/**
+ * getRegexServerPort
+ *
+ * English:
+ *  Returns a strict RegExp that matches a single **container port** in the range **1–65535**.
+ *  - Pure digits only (no spaces or signs).
+ *  - No leading zeros (e.g., "080" is rejected).
+ *  - Does not accept ranges or mappings (e.g., "8080-8090", "8080:80"); this is intentionally
+ *    just the container port value.
+ *
+ * Português:
+ *  Retorna uma RegExp estrita que valida uma única **porta de container** no intervalo **1–65535**.
+ *  - Somente dígitos (sem espaços ou sinais).
+ *  - Sem zeros à esquerda (por ex., "080" é rejeitado).
+ *  - Não aceita intervalos ou mapeamentos (ex.: "8080-8090", "8080:80"); valida apenas
+ *    o valor da porta do container.
+ *
+ * @returns {RegExp} English: regex for ports 1–65535 | Português: regex para portas 1–65535
+ *
+ * @example
+ *  const rx = getRegexServerPort();
+ *  rx.test("80");      // true
+ *  rx.test("65535");   // true
+ *  rx.test("0");       // false
+ *  rx.test("65536");   // false
+ *  rx.test("080");     // false (leading zero)
+ *  rx.test("8080/tcp");// false (protocol not included)
+ *
+ * // Tip (EN): If you want to allow an optional protocol suffix like "/tcp|/udp|/sctp",
+ * // you can wrap this regex and add:  /^(?:<PORT>)(?:\/(?:tcp|udp|sctp))?$/
+ * // Dica (PT): Para aceitar sufixo opcional de protocolo "/tcp|/udp|/sctp",
+ * // envolva esta regex e acrescente: /^(?:<PORT>)(?:\/(?:tcp|udp|sctp))?$/
+ */
+function getRegexServerPort() {
+    // 1–9999:    [1-9]\d{0,3}
+    // 10000–59999: [1-5]\d{4}
+    // 60000–64999: 6[0-4]\d{3}
+    // 65000–65499: 65[0-4]\d{2}
+    // 65500–65529: 655[0-2]\d
+    // 65530–65535: 6553[0-5]
+    return /^(?:[1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
+}
