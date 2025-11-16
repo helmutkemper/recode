@@ -29,14 +29,20 @@ https://olake.io/docs/connectors/mongodb/cdc_setup/
     </div>
 
     <div class="form-row">
-        <div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-names"></div>
+        <label for="node-input-names-editor">Names to delete</label>
+
+        <!-- Hidden field that Node-RED uses to persist the property -->
+        <input type="hidden" id="node-input-names">
+
+        <div id="node-input-names-editor" class="node-text-editor"
+             style="height: 250px; min-height:150px;"></div>
         <div id="node-input-names-help" class="nr-form"></div>
     </div>
 </script>
 
 <script type="text/javascript">
 
-
+    (() => {
         let registerType = "chaos-garbage-collector";
         let paletteLabel = "Garbage collector";
         let category = "chaos";
@@ -76,35 +82,62 @@ https://olake.io/docs/connectors/mongodb/cdc_setup/
             label: function() {
                 return this.savePath ? paletteLabel+": "+this.savePath : paletteLabel;
             },
-            oneditsave: function(){
-                this.savePath = $(savePathSelector).val();
 
-                this._names = this.editor.getValue();
-                this.names = this._names;
-
-                this.editor.destroy();
-                delete this.editor;
-            },
             oneditprepare: function() {
+                $("#node-input-names").val(this.names || "");
 
-                let editValue = this._names ? this._names : this.names;
                 this.editor = RED.editor.createEditor({
-                    id: 'node-input-names',
+                    id: 'node-input-names-editor',
                     mode: 'ace/mode/text',
-                    value: editValue
+                    value: $("#node-input-names").val()
                 });
+
+                // Optional: auto-resize fix after dialog opens
+                setTimeout(() => { try { this.editor.resize(true); } catch {} }, 0);
 
                 validateField(savePathSelector, savePathPartner, savePathHelp);
 
                 $(savePathSelector).val(this.savePath);
             },
-            oneditcancel: function() {
-                this.editor.destroy();
-                delete this.editor;
+
+            oneditsave: function(){
+                this.savePath = $("#node-input-savePath").val();
+
+                if (this.editor) {
+                    const value = this.editor.getValue();
+                    $("#node-input-names").val(value);
+                    this.names = value;
+
+                    this.editor.destroy();
+                    delete this.editor;
+                }
             },
+
+            /**
+             * oneditcancel
+             *
+             * English:
+             *  Cleanly destroy the editor to avoid leaks.
+             *
+             * Português:
+             *  Destrói o editor corretamente para evitar vazamentos.
+             */
+            oneditcancel: function() {
+                if (this.editor) { this.editor.destroy(); delete this.editor; }
+            },
+
+            /**
+             * oneditdelete
+             *
+             * English:
+             *  Cleanly destroy the editor to avoid leaks.
+             *
+             * Português:
+             *  Destrói o editor corretamente para evitar vazamentos.
+             */
             oneditdelete: function() {
-                this.editor.destroy();
-                delete this.editor;
+                if (this.editor) { this.editor.destroy(); delete this.editor; }
             }
         });
+    })();
 </script>

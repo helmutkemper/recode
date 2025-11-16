@@ -68,7 +68,7 @@
                 // Create editor bound to the *-editor DIV (not the hidden input)
                 this.editor = RED.editor.createEditor({
                 id:    "node-input-envvars-editor",
-                mode:  "ace/mode/text",  // use text; change to 'ace/mode/yaml' or similar if desired
+                mode:  "ace/mode/text",
                 value: $("#node-input-envvars").val()
                 });
 
@@ -88,8 +88,8 @@
             oneditsave: function(){
                 if (this.editor) {
                     const value = this.editor.getValue();
-                    $("#node-input-envvars").val(value); // Node-RED persists from inputs matching defaults
-                    this.envvars = value;                // keep instance in sync (useful for label/update)
+                    $("#node-input-envvars").val(value);
+                    this.envvars = value;
 
                     this.editor.destroy();
                     delete this.editor;
@@ -97,7 +97,7 @@
             },
 
             /**
-            * oneditcancel / oneditdelete
+            * oneditcancel
             *
             * English:
             *  Cleanly destroy the editor to avoid leaks.
@@ -109,6 +109,15 @@
                 if (this.editor) { this.editor.destroy(); delete this.editor; }
             },
 
+            /**
+             * oneditdelete
+             *
+             * English:
+             *  Cleanly destroy the editor to avoid leaks.
+             *
+             * Português:
+             *  Destrói o editor corretamente para evitar vazamentos.
+             */
             oneditdelete: function() {
                 if (this.editor) { this.editor.destroy(); delete this.editor; }
             }

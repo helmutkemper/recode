@@ -88,5 +88,5 @@ module.exports = function(RED) {
         });
         this.on("close", (removed, done) => { done(); });
     }
-    RED.nodes.registerType("chaos-container-ports",chaosContainerPorts);
+    RED.nodes.registerType("container ports",chaosContainerPorts);
 }

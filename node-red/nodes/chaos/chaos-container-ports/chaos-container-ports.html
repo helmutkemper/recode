@@ -1,13 +1,15 @@
-<script type="text/html" data-help-name="chaos-container-ports">
+<script type="text/html" data-help-name="container ports">
     <p>Define as portas do container que serão expostas ao mundo.</p>
     <h3>Entradas</h3>
     <dl class="message-properties">
         <dt>Formulário manual</dt>
-        <dd>O desenvolvedor necessita informar uma porta porta, a ser exposta ao mundo, por elemento.</dd>
+        <dd>O desenvolvedor necessita informar uma porta, a ser exposta ao mundo, por elemento.</dd>
+        <dd>&nbsp;</dd>
+        <dd>Este nó equivale ao comando<br><code>docker run<br>-p [host_port]:[container_port]</code></dd>
     </dl>
 </script>
 
-<script type="text/html" data-template-name="chaos-container-ports">
+<script type="text/html" data-template-name="container ports">
     <div class="form-row">
         <label for="node-input-protocol">Protocol</label>
         <input type="text" id="node-input-protocol">
@@ -29,7 +31,7 @@
 <script type="text/javascript">
     (() => {
         const node = this;
-        const registerType = "chaos-container-ports";
+        const registerType = "container ports";
         const paletteLabel = "port";
         const category = "chaos";
         const icon = "font-awesome/fa-bug";
