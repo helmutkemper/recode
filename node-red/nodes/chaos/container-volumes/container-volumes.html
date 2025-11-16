@@ -1,0 +1,74 @@
+<script type="text/html" data-help-name="container volumes">
+    <p>Define o compartilhamento de volumes entre o computador hospedeiro e o docker.</p>
+    <h3>Entradas</h3>
+    <dl class="message-properties">
+        <dt>Formulário manual</dt>
+        <dd>O desenvolvedor necessita informar o volume do computador hospedeiro e o volume equivalente no container.</dd>
+        <dd>&nbsp;</dd>
+        <dd>Este nó equivale ao comando<br><code>docker run<br>-v my_volume:/path/in/container<br>...</code></dd>
+    </dl>
+</script>
+
+<script type="text/html" data-template-name="container volumes">
+    <div class="form-row">
+        <label for="node-input-container">Container volume</label>
+        <input type="input" id="node-input-container" placeholder="">
+        <div id="node-input-container-help" class="nr-form"></div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-local">Local volume</label>
+        <input type="input" id="node-input-local" placeholder="">
+        <div id="node-input-local-help" class="nr-form"></div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    (() => {
+        const node = this;
+        const registerType = "container volumes";
+        const paletteLabel = "volume";
+        const category = "chaos";
+        const icon = "font-awesome/fa-bug";
+        const componentColor = "#aaaaaa";
+        const inputs = 0;
+        const outputs = 1;
+
+        node.containerSelector = "#container";
+        node.containerPartner  = getRegexLinuxRelativePathSafe();
+        node.containerHelp     = "Caminho de pasta linux, dentro do container";
+
+        node.localSelector = "#local";
+        node.localPartner  = getRegexLinuxRelativePathSafe();
+        node.localHelp     = "Caminho de pasta linux, relativo ao local onde o projeto roda";
+
+        RED.nodes.registerType(registerType,{
+            category: category,
+            color: componentColor,
+            defaults: {
+                container: { value: "", required: true },
+                local: { value: "", required: true }
+            },
+            inputs: inputs,
+            outputs: outputs,
+            outputLabels: function(index) {
+                return "The next step: ***";
+            },
+            icon: icon,
+            label: function() {
+                return paletteLabel;
+            },
+            oneditsave: function(){
+                node.subnet   = $(node.subnetSelector).val();
+                node.gateway  = $(node.gatewaySelector).val();
+            },
+            oneditprepare: function() {
+                validateField(node.containerSelector, node.containerPartner, node.containerHelp);
+                validateField(node.localSelector, node.localPartner, node.localHelp);
+
+                $(node.containerSelector).val(node.container);
+                $(node.localSelector).val(node.local);
+            }
+        });
+    })();
+</script>
