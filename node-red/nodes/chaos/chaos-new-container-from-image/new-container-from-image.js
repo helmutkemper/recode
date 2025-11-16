@@ -88,5 +88,5 @@ module.exports = function(RED) {
         });
         this.on("close", (removed, done) => { done(); });
     }
-    RED.nodes.registerType("new-container-from-image",newContainerFromImage);
+    RED.nodes.registerType("container from image",newContainerFromImage);
 }

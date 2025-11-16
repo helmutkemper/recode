@@ -1,4 +1,4 @@
-<script type="text/html" data-help-name="chaos-create-network">
+<script type="text/html" data-help-name="create network">
     <p>Cria uma rede docker exclusiva para o teste de caos.<br><br><b>Nota:</b> Ela é necessária para poder endereçar os containers por nome ao invés de usar endereços de rede.</p>
     <h3>Entradas</h3>
     <dl class="message-properties">
@@ -7,7 +7,7 @@
     </dl>
 </script>
 
-<script type="text/html" data-template-name="chaos-create-network">
+<script type="text/html" data-template-name="create network">
     <div class="form-row">
         <label for="node-input-name">Nome</label>
         <input type="text" id="node-input-name" placeholder="chaos_network">
@@ -30,7 +30,7 @@
 <script type="text/javascript">
     (() => {
         const node = this;
-        const registerType = "chaos-create-network";
+        const registerType = "create network";
         const paletteLabel = "network";
         const category = "chaos";
         const icon = "font-awesome/fa-bug";

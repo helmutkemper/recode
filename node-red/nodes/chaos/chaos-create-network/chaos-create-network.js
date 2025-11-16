@@ -88,5 +88,5 @@ module.exports = function(RED) {
         });
         this.on("close", (removed, done) => { done(); });
     }
-    RED.nodes.registerType("chaos-create-network",chaosCreateNetwork);
+    RED.nodes.registerType("create network",chaosCreateNetwork);
 }

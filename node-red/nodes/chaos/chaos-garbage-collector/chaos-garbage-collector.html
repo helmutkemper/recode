@@ -2,7 +2,7 @@
 docker run -d --restart=always --name mongo -v mongo:/data/db -p 27017:27017 mongo:3.6 --auth  --bind_ip_all
 https://olake.io/docs/connectors/mongodb/cdc_setup/
 -->
-<script type="text/html" data-help-name="chaos-garbage-collector">
+<script type="text/html" data-help-name="garbage collector">
     <p>Define o coletor de lixo.<br><br>Remove containers, imagens e redes criadas pelo teste.</p>
     <h3>Entradas</h3>
     <dl class="message-properties">
@@ -21,7 +21,7 @@ https://olake.io/docs/connectors/mongodb/cdc_setup/
     <p></p>
 </script>
 
-<script type="text/html" data-template-name="chaos-garbage-collector">
+<script type="text/html" data-template-name="garbage collector">
     <div class="form-row">
         <label for="node-input-savePath">Save path</label>
         <input type="text" id="node-input-savePath" placeholder="./end">
@@ -43,7 +43,7 @@ https://olake.io/docs/connectors/mongodb/cdc_setup/
 <script type="text/javascript">
 
     (() => {
-        let registerType = "chaos-garbage-collector";
+        let registerType = "garbage collector";
         let paletteLabel = "Garbage collector";
         let category = "chaos";
         let icon = "font-awesome/fa-bug";
