@@ -274,6 +274,53 @@ function getRegexLinuxRelativePathSafe() {
     // $                      end
     return /^(?!\/)(?!.*\/\/)(?!.*\x00)(?:(?!\.{1,2}(?:\/|$))[A-Za-z0-9._-]{1,255}\/)*(?!\.{1,2}$)[A-Za-z0-9._-]{1,255}$/;
 }
+/**
+ * getRegexLinuxRelativeDirPath
+ *
+ * English:
+ *  Returns a RegExp that validates a **relative Linux directory path** that may start
+ *  with traversal segments like `../` or `./`. The pattern:
+ *   - Must be **relative** (cannot start with `/`).
+ *   - Must be **non-empty**.
+ *   - May begin with one or more `../` or `./`.
+ *   - Then zero or more normal segments separated by `/`.
+ *   - Each normal segment allows `[A–Z a–z 0–9 . _ -]`, length 1–255.
+ *   - Allows an optional **trailing slash** (so `../../` is valid).
+ *   - Disallows empty segments (no `//`).
+ *
+ * Português:
+ *  Retorna uma RegExp que valida um **caminho de pasta relativo no Linux** que pode
+ *  começar com segmentos de travessia como `../` ou `./`. A regra:
+ *   - Deve ser **relativo** (não pode começar com `/`).
+ *   - Não pode ser **vazio**.
+ *   - Pode iniciar com um ou mais `../` ou `./`.
+ *   - Depois, zero ou mais segmentos normais separados por `/`.
+ *   - Cada segmento normal aceita `[A–Z a–z 0–9 . _ -]`, tamanho 1–255.
+ *   - Permite **barra final opcional** (logo, `../../` é válido).
+ *   - Não permite segmentos vazios (sem `//`).
+ *
+ * @returns {RegExp} RegExp for safe relative dir paths with optional leading ../ or ./.
+ *
+ * @example
+ *  const rx = getRegexLinuxRelativeDirPath();
+ *  rx.test("logs");               // true
+ *  rx.test("./build/output");     // true
+ *  rx.test("../configs");         // true
+ *  rx.test("../../");             // true (trailing slash allowed)
+ *  rx.test("a/b/..");             // false (requires '../' with trailing slash when used)
+ *  rx.test("/abs/path");          // false (absolute)
+ *  rx.test("");                   // false (empty)
+ *  rx.test("a//b");               // false (empty segment)
+ */
+function getRegexLinuxRelativeDirPath() {
+    // ^(?!\/)(?!$)                    -> must not start with '/' and must not be empty
+    // (?:(?:\.\.?\/)+)?               -> optional leading './' or '../' one-or-more times
+    // (?:[A-Za-z0-9._-]{1,255}        -> first normal segment (if present)
+    //    (?:\/[A-Za-z0-9._-]{1,255})* -> additional segments
+    // )?                              -> all normal segments are optional (e.g., "../../")
+    // \/?$                            -> optional trailing slash
+    return /^(?!\/)(?!$)(?:(?:\.\.?\/)+)?(?:[A-Za-z0-9._-]{1,255}(?:\/[A-Za-z0-9._-]{1,255})*)?\/?$/;
+}
 
 /**
  * getRegexServerPort
