@@ -33,3 +33,6 @@ go.work.sum
 
 # Ignora a pasta de configuração do projeto
 /node-red/data
+
+# Ignora o log do app, usado para debug
+app.log
